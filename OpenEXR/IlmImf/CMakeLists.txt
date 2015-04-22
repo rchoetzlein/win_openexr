@@ -1,40 +1,50 @@
-# yue.nicholas@gmail.com
+
+# OPENEXR / IlmImf
+
+# win_openexr fork by: 
+#   lithozine (rhoetzlein@gmail.com)
 
 SET(CMAKE_INCLUDE_CURRENT_DIR 1)
 
-ADD_EXECUTABLE ( b44ExpLogTable
-  b44ExpLogTable.cpp
-)
+# ---- THESE TABLES DO NOT WORK PROPERLY ON WINDOWS
+# ---- See openvdb.org forum for details.
+# Using static tables provided in win_openvdb fork
 
-TARGET_LINK_LIBRARIES ( b44ExpLogTable
-  Half
-  Iex${ILMBASE_LIBSUFFIX}
-  IlmThread${ILMBASE_LIBSUFFIX}
-  ${PTHREAD_LIB}
-)
+#
+#
+#ADD_EXECUTABLE ( b44ExpLogTable
+# b44ExpLogTable.cpp
+#) 
+#TARGET_LINK_LIBRARIES ( b44ExpLogTable
+#  Half
+# Iex${ILMBASE_LIBSUFFIX}
+# IlmThread${ILMBASE_LIBSUFFIX}
+# ${PTHREAD_LIB}
+#)
+#
+#ADD_CUSTOM_COMMAND (
+#  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/b44ExpLogTable.h
+#  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/#${CMAKE_CFG_INTDIR}/b44ExpLogTable > #${CMAKE_CURRENT_BINARY_DIR}/b44ExpLogTable.h
+#  DEPENDS b44ExpLogTable
+#)
+#
+#ADD_EXECUTABLE ( dwaLookups
+#  dwaLookups.cpp
+#)
+#
+#TARGET_LINK_LIBRARIES ( dwaLookups
+#  Half
+#  Iex${ILMBASE_LIBSUFFIX}
+#  IlmThread${ILMBASE_LIBSUFFIX}
+#  ${PTHREAD_LIB}
+#)
+#
+#ADD_CUSTOM_COMMAND (
+#  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dwaLookups.h
+#  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/#${CMAKE_CFG_INTDIR}/dwaLookups > #${CMAKE_CURRENT_BINARY_DIR}/dwaLookups.h
+#  DEPENDS dwaLookups
+#)
 
-ADD_CUSTOM_COMMAND (
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/b44ExpLogTable.h
-  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/b44ExpLogTable > ${CMAKE_CURRENT_BINARY_DIR}/b44ExpLogTable.h
-  DEPENDS b44ExpLogTable
-)
-
-ADD_EXECUTABLE ( dwaLookups
-  dwaLookups.cpp
-)
-
-TARGET_LINK_LIBRARIES ( dwaLookups
-  Half
-  Iex${ILMBASE_LIBSUFFIX}
-  IlmThread${ILMBASE_LIBSUFFIX}
-  ${PTHREAD_LIB}
-)
-
-ADD_CUSTOM_COMMAND (
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dwaLookups.h
-  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/dwaLookups > ${CMAKE_CURRENT_BINARY_DIR}/dwaLookups.h
-  DEPENDS dwaLookups
-)
 
 SET ( ILMIMF_SRCS
   ImfAttribute.cpp
@@ -136,14 +146,45 @@ ADD_LIBRARY ( IlmImf ${LIB_TYPE}
   ${ILMIMF_SRCS}
 )
 
+macro (POST_COPY SRC_TARGET SRC_PATH SRC_MATCH DEST_DIR)
+  
+  # Locate all files matching pattern
+  message ( STATUS "Packaging for /include: ${SRC_PATH}/${SRC_MATCH} -> ${DEST_DIR}" )
+  FILE ( GLOB src_list ABSOLUTE "${SRC_PATH}/${SRC_MATCH}" )    
+ 
+  # Add post-build copy
+  foreach ( src_file ${src_list})
+    ADD_CUSTOM_COMMAND ( TARGET ${SRC_TARGET}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src_file} ${DEST_DIR}
+    )
+  endforeach () 
+endmacro ()
+
 TARGET_LINK_LIBRARIES ( IlmImf 
   Half 
   Iex${ILMBASE_LIBSUFFIX}
   Imath${ILMBASE_LIBSUFFIX}
   IlmThread${ILMBASE_LIBSUFFIX}
   ${PTHREAD_LIB} ${ZLIB_LIBRARIES}
+  ${ZLIB_LIBRARY}
 )
 
+# Package the output library and dll into a /lib folder
+ADD_CUSTOM_COMMAND ( TARGET IlmImf
+  POST_BUILD  
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/lib"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/IlmImf.dll ${CMAKE_BINARY_DIR}/lib
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/IlmImf.lib ${CMAKE_BINARY_DIR}/lib  
+)
+# Package the source include files into /include folder
+POST_COPY ( IlmImf ${CMAKE_CURRENT_SOURCE_DIR} *.h "${CMAKE_BINARY_DIR}/include" )
+
+#set_target_properties(mylibrary PROPERTIES
+#                      RUNTIME_OUTPUT_DIRECTORY_DEBUG <debug path>
+#                      RUNTIME_OUTPUT_DIRECTORY_RELEASE <release path>
+#)
 
 ADD_DEPENDENCIES ( IlmImf b44ExpLogTable )
 
@@ -172,6 +213,8 @@ INSTALL ( TARGETS
 
 # Headers
 INSTALL ( FILES
+  b44ExpLogTable.h
+  dwaLookups.h
   ImfForward.h
   ImfExport.h
   ImfAttribute.h

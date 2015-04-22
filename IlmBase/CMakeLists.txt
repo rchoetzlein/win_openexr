@@ -1,4 +1,33 @@
-# yue.nicholas@gmail.com
+
+# IlmBase
+# win_openexr fork by: lithozine (ramahoetzlein@gmail.com)
+# original by yue.nicholas@gmail.com
+
+
+macro (POST_COPY SRC_TARGET SRC_PATH SRC_MATCH DEST_DIR)
+  
+  # Make sure dir exists
+  MAKE_DIRECTORY ( "${DEST_DIR}" )
+  
+  # Locate all files matching pattern
+  message ( STATUS "Packaging for /include: ${SRC_PATH}/${SRC_MATCH} -> ${DEST_DIR}" )    
+  if ( "${SRC_MATCH}" MATCHES "(.*)\\*(.*)" )  
+     # wildcard given, find all matching files (MUST EXIST NOW, AT CMAKE TIME, BEFORE BUILD)
+     FILE ( GLOB src_list ABSOLUTE "${SRC_PATH}/${SRC_MATCH}" )
+  else ()
+     # specific file, just copy it
+     SET ( src_list "${SRC_PATH}/${SRC_MATCH}")
+  endif ()
+  
+  # Add post-build copy
+  foreach ( src_file ${src_list})
+    ADD_CUSTOM_COMMAND ( TARGET ${SRC_TARGET}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src_file} ${DEST_DIR}
+    )
+  endforeach () 
+endmacro ()
+
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT ( ilmbase )
@@ -29,7 +58,7 @@ INCLUDE ( CPack )
 OPTION (BUILD_SHARED_LIBS "Build Shared Libraries" ON)
 
 # Allow the developer to select if Dynamic or Static libraries are built
-OPTION (NAMESPACE_VERSIONING "Namespace Versioning" ON)
+OPTION (NAMESPACE_VERSIONING "Namespace Versioning" OFF)      # default to OFF for Windows
 
 # Setup osx rpathing
 SET (CMAKE_MACOSX_RPATH 1)
@@ -153,6 +182,10 @@ FILE ( APPEND ${CMAKE_CURRENT_BINARY_DIR}/config/IlmBaseConfig.h "
                              (ILMBASE_VERSION_PATCH <<  8))
 ")
 
+# Package the IlmBaseConfig.h into /include
+make_directory ( "${CMAKE_BINARY_DIR}/include" )
+FILE ( COPY "${CMAKE_CURRENT_BINARY_DIR}/config/IlmBaseConfig.h" DESTINATION "${CMAKE_BINARY_DIR}/include" )
+
 SET (ILMBASE_LIBSUFFIX "")
 IF (NAMESPACE_VERSIONING)
   SET ( ILMBASE_LIBSUFFIX "-${ILMBASE_VERSION_API}" )
@@ -187,7 +220,7 @@ SET_TARGET_PROPERTIES ( IexMath
   SOVERSION 12
   OUTPUT_NAME "IexMath${ILMBASE_LIBSUFFIX}"
   )
-
+  
 IF ( NOT WIN32 )
   CREATE_LIBTOOL_FILE ( Half /lib )
   CREATE_LIBTOOL_FILE ( Iex /lib )
