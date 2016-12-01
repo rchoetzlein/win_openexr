@@ -40,6 +40,10 @@ ADD_LIBRARY ( Half ${LIB_TYPE}
   half.cpp
   )
 
+# Packaging lib and includes
+POST_COPY ( Half ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR} Half.dll ${CMAKE_BINARY_DIR}/lib )
+POST_COPY ( Half ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR} Half.lib ${CMAKE_BINARY_DIR}/lib )
+POST_COPY ( Half ${CMAKE_CURRENT_SOURCE_DIR} *.h "${CMAKE_BINARY_DIR}/include" )
 
 ADD_DEPENDENCIES ( Half toFloat eLut )
 

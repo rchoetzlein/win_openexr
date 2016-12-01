@@ -9,6 +9,11 @@ ADD_LIBRARY ( Iex ${LIB_TYPE}
   IexThrowErrnoExc.cpp
   )
 
+# Packaging lib and includes
+POST_COPY ( Iex ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR} Iex.dll ${CMAKE_BINARY_DIR}/lib )
+POST_COPY ( Iex ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR} Iex.lib ${CMAKE_BINARY_DIR}/lib )
+POST_COPY ( Iex ${CMAKE_CURRENT_SOURCE_DIR} *.h "${CMAKE_BINARY_DIR}/include" )
+
 
 INSTALL ( TARGETS
   Iex

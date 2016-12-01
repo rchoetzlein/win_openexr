@@ -28,6 +28,12 @@ ADD_LIBRARY ( IlmThread ${LIB_TYPE}
   )
 TARGET_LINK_LIBRARIES(IlmThread Iex)
 
+# Packaging lib and includes
+POST_COPY ( IlmThread ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR} IlmThread.dll ${CMAKE_BINARY_DIR}/lib )
+POST_COPY ( IlmThread ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR} IlmThread.lib ${CMAKE_BINARY_DIR}/lib )
+POST_COPY ( IlmThread ${CMAKE_CURRENT_SOURCE_DIR} *.h "${CMAKE_BINARY_DIR}/include" )
+
+
 INSTALL ( TARGETS
   IlmThread
   DESTINATION

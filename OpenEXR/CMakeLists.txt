@@ -2,6 +2,15 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT (openexr)
 
+GET_FILENAME_COMPONENT ( BUILD_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/" REALPATH )
+GET_FILENAME_COMPONENT ( SOURCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../" REALPATH )
+GET_FILENAME_COMPONENT ( CMAKE_PATH  "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/" REALPATH )
+
+SET ( BASE_BUILD_PATH  ${BUILD_PATH} CACHE PATH "Base build output path.." )
+SET ( BASE_SOURCE_PATH  ${SOURCE_PATH} CACHE PATH "Base source code path..")
+SET ( CMAKE_MODULE_PATH ${CMAKE_PATH} CACHE PATH "Path to Find.cmake modules" )
+
+
 SET(OPENEXR_VERSION_MAJOR "2")
 SET(OPENEXR_VERSION_MINOR "2")
 SET(OPENEXR_VERSION_PATCH "0")
@@ -30,8 +39,8 @@ INCLUDE ( CPack )
 
 # Allow the developer to select if Dynamic or Static libraries are built
 OPTION (BUILD_SHARED_LIBS    "Build Shared Libraries" ON)
-OPTION (USE_ZLIB_WINAPI      "Use ZLib Win API"       OFF)
-OPTION (NAMESPACE_VERSIONING "Use Namespace Versioning" ON)
+OPTION (USE_ZLIB_WINAPI      "Use ZLib Win API"       ON)
+OPTION (NAMESPACE_VERSIONING "Use Namespace Versioning" OFF)    # default to OFF for Windows
 
 # Setup osx rpathing
 SET (CMAKE_MACOSX_RPATH 1)
@@ -51,15 +60,23 @@ INCLUDE_DIRECTORIES (
 )
 
 FIND_PACKAGE(ZLIB REQUIRED)
+FIND_PACKAGE(ILMBASE REQUIRED)
+
 INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
 
 IF (NOT WIN32)
   SET ( PTHREAD_LIB pthread )
 ENDIF()
 
-INCLUDE_DIRECTORIES ( ${ILMBASE_PACKAGE_PREFIX}/include/OpenEXR )
+if (NOT ILMBASE_FOUND )
+  message ( FATAL_ERROR "Unable to find IlmBase library. Confirm BASE_BUILD_PATH contains \\IlmBase or ILMBASE_HOME points to built IlmBase library." )
+else ()
+  set ( ILMBASE_PACKAGE_PREFIX ${ILMBASE_HOME} )
+endif ()
+
+INCLUDE_DIRECTORIES ( ${ILMBASE_PACKAGE_PREFIX}/include)
 LINK_DIRECTORIES ( ${ILMBASE_PACKAGE_PREFIX}/lib )
-MESSAGE ( "ILMBASE_PACKAGE_PREFIX = " ${ILMBASE_PACKAGE_PREFIX})
+MESSAGE ( STATUS "ILMBASE_PACKAGE_PREFIX = " ${ILMBASE_PACKAGE_PREFIX})
 
 SET (LIB_TYPE STATIC)
 IF (BUILD_SHARED_LIBS)
@@ -165,6 +182,12 @@ IF (NAMESPACE_VERSIONING)
   SET ( ILMBASE_LIBSUFFIX "-${OPENEXR_VERSION_API}" )
 ENDIF ()
 
+
+# Package the OpenEXRConfig.h into /include
+make_directory ( "${CMAKE_BINARY_DIR}/include" )
+FILE ( COPY "${CMAKE_CURRENT_BINARY_DIR}/config/OpenEXRConfig.h" DESTINATION "${CMAKE_BINARY_DIR}/include" )
+
+
 ##########################
 # IlmImf library
 ##########################
@@ -176,6 +199,9 @@ SET_TARGET_PROPERTIES ( IlmImf
   SOVERSION 22
   OUTPUT_NAME "IlmImf${OPENEXR_LIBSUFFIX}"
   )
+  
+
+  
   
 ##########################
 # IlmImfUtil library

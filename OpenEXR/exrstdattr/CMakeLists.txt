@@ -4,6 +4,9 @@ ADD_EXECUTABLE ( exrstdattr
   main.cpp
 )
 
+
+
+
 TARGET_LINK_LIBRARIES ( exrstdattr
   IlmImf
   IlmThread${ILMBASE_LIBSUFFIX}
